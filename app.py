@@ -184,7 +184,7 @@ if dados:
         
     st.divider()
 
-    # Gráfico 1: Evolução das Próximas 24h (Com correção definitiva para o arrasto mobile)
+    # Gráfico 1: Evolução das Próximas 24h
     st.markdown("### Evolução da Temperatura (Próximas 24h)")
     horas_dt = pd.to_datetime(dados["hourly"]["time"][:24])
     df_hourly = pd.DataFrame({
@@ -197,11 +197,8 @@ if dados:
         markers=True, template="plotly_dark"
     )
     fig_hora.update_traces(line_color="#38bdf8", marker_size=6, line_width=2)
-    
-    # Desativa o dragmode de arrasto livre para que 1 dedo role a página, 
-    # mantendo fixedrange=False para permitir pinça (zoom com 2 dedos)
     fig_hora.update_layout(
-        dragmode=False, 
+        dragmode=False,
         xaxis=dict(title="Horário", fixedrange=False),
         yaxis=dict(title="°C", fixedrange=False),
         paper_bgcolor="rgba(0,0,0,0)",
@@ -209,28 +206,23 @@ if dados:
         margin=dict(l=10, r=10, t=10, b=10),
         height=350
     )
-    
     st.plotly_chart(
         fig_hora, 
         use_container_width=True, 
-        config={
-            "scrollZoom": True,
-            "displayModeBar": False,
-            "staticPlot": False
-        }
+        config={"scrollZoom": True, "displayModeBar": False, "staticPlot": False}
     )
 
     st.markdown("---")
 
-    # Gráfico 2: Histórico e Previsão
+    # Gráfico 2: Histórico e Previsão Otimizado para Mobile
     st.markdown("### 📊 Histórico e Previsão de Temperaturas")
     st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para os próximos dias.")
 
     dias_janela = st.slider(
         "📅 Selecione a quantidade de dias exibidos (Passado e Futuro)", 
         min_value=3, 
-        max_value=14, 
-        value=7, 
+        max_value=10, 
+        value=5, 
         step=1
     )
 
@@ -242,14 +234,11 @@ if dados:
     
     for d in dias_dt:
         if d.normalize() == hoje_date.normalize():
-            datas_formatadas.append(f"⭐ {d.strftime('%d/%m')} (Hoje)")
+            datas_formatadas.append(f"Hoje ({d.strftime('%d/%m')})")
             status_dia.append("Hoje")
-        elif d < hoje_date:
-            datas_formatadas.append(d.strftime('%d/%m'))
-            status_dia.append("Passado")
         else:
             datas_formatadas.append(d.strftime('%d/%m'))
-            status_dia.append("Previsão")
+            status_dia.append("Passado/Previsão")
 
     df_daily_full = pd.DataFrame({
         "Data": dias_dt,
@@ -287,9 +276,6 @@ if dados:
         hovertemplate="<b>Data:</b> %{x}<br><b>%{data.name}:</b> %{y:.1f} °C<extra></extra>"
     )
 
-    total_barras = len(df_filtrado)
-    dtick_valor = 2 if total_barras > 14 else 1
-
     fig_dias.update_layout(
         dragmode=False,
         xaxis_title="Data", 
@@ -297,12 +283,11 @@ if dados:
         legend_title="",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=10, r=10, t=10, b=40),
-        height=410,
+        margin=dict(l=10, r=10, t=10, b=60),
+        height=420,
         xaxis=dict(
-            tickangle=0,
-            dtick=dtick_valor,
-            tickfont=dict(size=11),
+            tickangle=-45,
+            tickfont=dict(size=10),
             fixedrange=False
         ),
         yaxis=dict(fixedrange=False)
@@ -311,11 +296,7 @@ if dados:
     st.plotly_chart(
         fig_dias, 
         use_container_width=True, 
-        config={
-            "scrollZoom": True,
-            "displayModeBar": False,
-            "staticPlot": False
-        }
+        config={"scrollZoom": True, "displayModeBar": False, "staticPlot": False}
     )
 
 else:
