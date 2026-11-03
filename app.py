@@ -214,7 +214,7 @@ if dados:
 
     st.markdown("---")
 
-    # Gráfico 2: Histórico e Previsão Otimizado para Mobile
+    # Gráfico 2: Histórico e Previsão com Estrelinha e Cores Diferenciadas para o Hoje
     st.markdown("### 📊 Histórico e Previsão de Temperaturas")
     st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para os próximos dias.")
 
@@ -230,20 +230,20 @@ if dados:
     hoje_date = pd.to_datetime(datetime.now().date())
     
     datas_formatadas = []
-    status_dia = []
+    tipo_coluna = []
     
     for d in dias_dt:
         if d.normalize() == hoje_date.normalize():
-            datas_formatadas.append(f"Hoje ({d.strftime('%d/%m')})")
-            status_dia.append("Hoje")
+            datas_formatadas.append(f"⭐ {d.strftime('%d/%m')}")  # Apenas a data com estrelinha, sem a palavra "hoje"
+            tipo_coluna.append("⭐ Hoje")
         else:
             datas_formatadas.append(d.strftime('%d/%m'))
-            status_dia.append("Passado/Previsão")
+            tipo_coluna.append("Histórico / Previsão")
 
     df_daily_full = pd.DataFrame({
         "Data": dias_dt,
         "Data Amigável": datas_formatadas,
-        "Tipo_Dia": status_dia,
+        "Categoria": tipo_coluna,
         "Mínima": dados["daily"]["temperature_2m_min"],
         "Máxima": dados["daily"]["temperature_2m_max"]
     })
@@ -255,21 +255,22 @@ if dados:
     df_filtrado = df_daily_full.iloc[inicio_fatia:fim_fatia]
 
     df_daily_melted = df_filtrado.melt(
-        id_vars=["Data Amigável", "Tipo_Dia"], 
+        id_vars=["Data Amigável", "Categoria"], 
         value_vars=["Mínima", "Máxima"],
         var_name="Métrica", 
         value_name="°C"
     )
 
+    # Usamos cores distintas para separar o dia de hoje (destacado em amarelo/dourado) dos demais dias
     fig_dias = px.bar(
         df_daily_melted, 
         x="Data Amigável", 
         y="°C", 
         color="Métrica",
+        pattern_shape="Categoria", # Cria um padrão visual único para a barra de hoje
         barmode="group", 
         template="plotly_dark",
-        color_discrete_map={"Mínima": "#60a5fa", "Máxima": "#fb923c"},
-        custom_data=["Tipo_Dia"]
+        color_discrete_map={"Mínima": "#60a5fa", "Máxima": "#fb923c"}
     )
     
     fig_dias.update_traces(
