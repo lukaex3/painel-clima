@@ -214,7 +214,7 @@ if dados:
 
     st.markdown("---")
 
-    # Gráfico 2: Histórico e Previsão
+    # Gráfico 2: Histórico e Previsão com Passo de 3 em 3 dias e Destaque Limpo
     st.markdown("### 📊 Histórico e Previsão de Temperaturas")
     st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para os próximos dias.")
 
@@ -222,7 +222,7 @@ if dados:
         "📅 Selecione a quantidade de dias exibidos (Passado e Futuro)", 
         min_value=3, 
         max_value=10, 
-        value=6, 
+        value=5, 
         step=1
     )
 
@@ -230,16 +230,19 @@ if dados:
     hoje_date = pd.to_datetime(datetime.now().date())
     
     datas_formatadas = []
+    status_dia = []
     
     for d in dias_dt:
+        datas_formatadas.append(d.strftime('%d/%m'))
         if d.normalize() == hoje_date.normalize():
-            datas_formatadas.append(f"⭐ {d.strftime('%d/%m')}")  # Estrelinha direto na data mantendo a ordem correta
+            status_dia.append("⭐ Hoje")
         else:
-            datas_formatadas.append(d.strftime('%d/%m'))
+            status_dia.append("Normal")
 
     df_daily_full = pd.DataFrame({
         "Data": dias_dt,
         "Data Amigável": datas_formatadas,
+        "Status": status_dia,
         "Mínima": dados["daily"]["temperature_2m_min"],
         "Máxima": dados["daily"]["temperature_2m_max"]
     })
@@ -253,26 +256,40 @@ if dados:
     df_filtrado = df_daily_full.iloc[inicio_fatia:fim_fatia]
 
     df_daily_melted = df_filtrado.melt(
-        id_vars=["Data Amigável"], 
+        id_vars=["Data Amigável", "Status"], 
         value_vars=["Mínima", "Máxima"],
         var_name="Métrica", 
         value_name="°C"
     )
 
+    # Criamos uma coluna de cor personalizada para destacar o dia de hoje sem mexer na estrutura do eixo X
+    def definir_cor(row):
+        if row["Status"] == "⭐ Hoje":
+            return "#34d399"  # Verde-água/Esmeralda moderno para o dia de hoje
+        elif row["Métrica"] == "Mínima":
+            return "#60a5fa"  # Azul para mínima normal
+        else:
+            return "#fb923c"  # Laranja para máxima normal
+
+    df_daily_melted["Cor"] = df_daily_melted.apply(definitiva_cor = definir_cor, axis=1) if 'definitiva_cor' not in globals() else df_daily_melted.apply(definir_cor, axis=1)
+
+    # Gráfico de barras usando cores diretas por linha para destacar o HOJE com segurança
     fig_dias = px.bar(
         df_daily_melted, 
         x="Data Amigável", 
         y="°C", 
-        color="Métrica",
+        color="Status", # Mantém a separação limpa na legenda
         barmode="group", 
         template="plotly_dark",
-        color_discrete_map={"Mínima": "#60a5fa", "Máxima": "#fb923c"}
+        color_discrete_map={"Normal": "#fb923c", "⭐ Hoje": "#34d399"}
     )
     
     fig_dias.update_traces(
-        hovertemplate="<b>Data:</b> %{x}<br><b>%{data.name}:</b> %{y:.1f} °C<extra></extra>"
+        hovertemplate="<b>Data:</b> %{x} %{customdata[0]}<br><b>%{y:.1f} °C<extra></extra>",
+        custom_data=df_daily_melted[["Status"]]
     )
 
+    # Configuração de espaçamento de 3 em 3 dias (dtick=3) para garantir clareza visual total
     fig_dias.update_layout(
         dragmode=False,
         xaxis_title="Data", 
@@ -283,7 +300,8 @@ if dados:
         margin=dict(l=10, r=10, t=10, b=50),
         height=400,
         xaxis=dict(
-            tickangle=-45,
+            tickangle=0,                      # Datas retas, já que o espaçamento de 3 em 3 abre espaço
+            dtick=3,                          # Pula de 3 em 3 dias automaticamente para limpar o visual
             tickfont=dict(size=11),
             fixedrange=False,
             categoryorder="array",
