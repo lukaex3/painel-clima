@@ -214,12 +214,13 @@ if dados:
 
     st.markdown("---")
 
-    # Gráfico 2: Linha do Tempo Comparativa (Até 14 dias atrás e 14 dias à frente com Slider)
-    st.markdown("### 📊 Linha do Tempo Comparativa (Passado e Previsão)")
-    st.caption("Arraste o controle abaixo para escolher o número de dias para trás (comparação histórica) e para a frente (previsão).")
+    # Gráfico 2: Linha do Tempo Comparativa (Passado e Previsão Limpa)
+    st.markdown("### 📊 Histórico e Previsão de Temperaturas")
+    st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para os próximos dias.")
 
+    # Slider com linguagem mais natural e profissional
     dias_janela = st.slider(
-        "Selecionar amplitude de dias (Passado ↔ Futuro)", 
+        "📅 Selecione a quantidade de dias exibidos (Passado e Futuro)", 
         min_value=3, 
         max_value=14, 
         value=7, 
@@ -227,14 +228,33 @@ if dados:
     )
 
     dias_dt = pd.to_datetime(dados["daily"]["time"])
+    
+    # Identificar o dia de hoje de forma exata para marcar no gráfico
+    hoje_date = pd.to_datetime(datetime.now().date())
+    
+    # Criamos uma coluna de data amigável e uma flag para destacar o HOJE
+    datas_formatadas = []
+    status_dia = []
+    
+    for d in dias_dt:
+        if d.normalize() == hoje_date.normalize():
+            datas_formatadas.append(f"⭐ {d.strftime('%d/%m')} (Hoje)")
+            status_dia.append("Hoje")
+        elif d < hoje_date:
+            datas_formatadas.append(d.strftime('%d/%m'))
+            status_dia.append("Passado")
+        else:
+            datas_formatadas.append(d.strftime('%d/%m'))
+            status_dia.append("Previsão")
+
     df_daily_full = pd.DataFrame({
         "Data": dias_dt,
-        "Data_Str": dias_dt.strftime('%d/%m'),
+        "Data Amigável": datas_formatadas,
+        "Tipo_Dia": status_dia,
         "Mínima": dados["daily"]["temperature_2m_min"],
         "Máxima": dados["daily"]["temperature_2m_max"]
     })
 
-    hoje_date = pd.to_datetime(datetime.now().date())
     idx_hoje = (df_daily_full["Data"] - hoje_date).abs().idxmin()
 
     inicio_fatia = max(0, idx_hoje - dias_janela)
@@ -242,26 +262,39 @@ if dados:
     df_filtrado = df_daily_full.iloc[inicio_fatia:fim_fatia]
 
     df_daily_melted = df_filtrado.melt(
-        id_vars="Data_Str", 
+        id_vars=["Data Amigável", "Tipo_Dia"], 
         value_vars=["Mínima", "Máxima"],
-        var_name="Tipo", 
+        var_name="Métrica", 
         value_name="°C"
     )
 
+    # Gráfico com cores customizadas e tooltip limpo usando 'Data Amigável'
     fig_dias = px.bar(
-        df_daily_melted, x="Data_Str", y="°C", color="Tipo",
-        barmode="group", template="plotly_dark",
-        color_discrete_map={"Mínima": "#60a5fa", "Máxima": "#fb923c"}
+        df_daily_melted, 
+        x="Data Amigável", 
+        y="°C", 
+        color="Métrica",
+        barmode="group", 
+        template="plotly_dark",
+        color_discrete_map={"Mínima": "#60a5fa", "Máxima": "#fb923c"},
+        custom_data=["Tipo_Dia"]
     )
+    
+    # Personalizando o texto que aparece ao passar o mouse/dedo para ficar limpo e sem códigos feios
+    fig_dias.update_traces(
+        hovertemplate="<b>Data:</b> %{x}<br><b>%{data.name}:</b> %{y:.1f} °C<extra></extra>"
+    )
+
     fig_dias.update_layout(
         xaxis_title="Data", 
-        yaxis_title="°C", 
+        yaxis_title="Temperatura (°C)", 
         legend_title="",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=10, r=10, t=10, b=10),
-        height=380
+        height=390
     )
+    
     st.plotly_chart(fig_dias, use_container_width=True, config={"editable": False, "displayModeBar": False})
 
 else:
