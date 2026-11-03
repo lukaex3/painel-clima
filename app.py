@@ -184,7 +184,7 @@ if dados:
         
     st.divider()
 
-    # Gráfico 1: Evolução das Próximas 24h
+    # Gráfico 1: Evolução das Próximas 24h (Com correção definitiva para o arrasto mobile)
     st.markdown("### Evolução da Temperatura (Próximas 24h)")
     horas_dt = pd.to_datetime(dados["hourly"]["time"][:24])
     df_hourly = pd.DataFrame({
@@ -197,8 +197,11 @@ if dados:
         markers=True, template="plotly_dark"
     )
     fig_hora.update_traces(line_color="#38bdf8", marker_size=6, line_width=2)
+    
+    # Desativa o dragmode de arrasto livre para que 1 dedo role a página, 
+    # mantendo fixedrange=False para permitir pinça (zoom com 2 dedos)
     fig_hora.update_layout(
-        dragmode='zoom',
+        dragmode=False, 
         xaxis=dict(title="Horário", fixedrange=False),
         yaxis=dict(title="°C", fixedrange=False),
         paper_bgcolor="rgba(0,0,0,0)",
@@ -206,15 +209,20 @@ if dados:
         margin=dict(l=10, r=10, t=10, b=10),
         height=350
     )
+    
     st.plotly_chart(
         fig_hora, 
         use_container_width=True, 
-        config={"scrollZoom": True, "displayModeBar": False, "touchEvents": True}
+        config={
+            "scrollZoom": True,
+            "displayModeBar": False,
+            "staticPlot": False
+        }
     )
 
     st.markdown("---")
 
-    # Gráfico 2: Histórico e Previsão com Eixo X Otimizado e Espaçamento Inteligente
+    # Gráfico 2: Histórico e Previsão
     st.markdown("### 📊 Histórico e Previsão de Temperaturas")
     st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para os próximos dias.")
 
@@ -279,11 +287,11 @@ if dados:
         hovertemplate="<b>Data:</b> %{x}<br><b>%{data.name}:</b> %{y:.1f} °C<extra></extra>"
     )
 
-    # Lógica inteligente para espaçar os rótulos do eixo X se houver muitos dias selecionados
     total_barras = len(df_filtrado)
-    dtick_valor = 2 if total_barras > 14 else 1  # Se passar de 14 dias, exibe o rótulo de 2 em 2 dias para não embolar
+    dtick_valor = 2 if total_barras > 14 else 1
 
     fig_dias.update_layout(
+        dragmode=False,
         xaxis_title="Data", 
         yaxis_title="Temperatura (°C)", 
         legend_title="",
@@ -292,13 +300,23 @@ if dados:
         margin=dict(l=10, r=10, t=10, b=40),
         height=410,
         xaxis=dict(
-            tickangle=0,                 # Mantém os textos totalmente retos e profissionais
-            dtick=dtick_valor,           # Espaçamento dinâmico automático
-            tickfont=dict(size=11)
-        )
+            tickangle=0,
+            dtick=dtick_valor,
+            tickfont=dict(size=11),
+            fixedrange=False
+        ),
+        yaxis=dict(fixedrange=False)
     )
     
-    st.plotly_chart(fig_dias, use_container_width=True, config={"editable": False, "displayModeBar": False})
+    st.plotly_chart(
+        fig_dias, 
+        use_container_width=True, 
+        config={
+            "scrollZoom": True,
+            "displayModeBar": False,
+            "staticPlot": False
+        }
+    )
 
 else:
     st.error("Erro ao carregar dados da API para esta localidade.")
