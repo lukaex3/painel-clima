@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px
+from datetime import datetime, timedelta
 
 # 1. Configuração da página - Leve e Otimizada
 st.set_page_config(
@@ -66,15 +67,20 @@ with st.sidebar:
     st.markdown("---")
     st.caption("Projeto Extensionista • Focado em Acessibilidade e Utilidade Pública para a Região Metropolitana do Ceará.")
 
-# 3. Busca de Dados Otimizada (Com UV Index e Cache Otimizado)
+# 3. Busca de Dados Abrangente (30 Dias de Histórico + 30 Dias de Previsão)
 @st.cache_data(ttl=600)
 def carregar_dados_climaticos(lat, lon):
+    hoje = datetime.now()
+    data_inicio = (hoje - timedelta(days=30)).strftime('%Y-%m-%d')
+    data_fim = (hoje + timedelta(days=30)).strftime('%Y-%m-%d')
+    
     url = (
         f"https://api.open-meteo.com/v1/forecast?"
         f"latitude={lat}&longitude={lon}"
         f"&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,surface_pressure,uv_index"
         f"&hourly=temperature_2m,relative_humidity_2m"
         f"&daily=temperature_2m_max,temperature_2m_min,uv_index_max"
+        f"&start_date={data_inicio}&end_date={data_fim}"
         f"&models=ecmwf_ifs025"
         f"&timezone=America%2FFortaleza"
     )
@@ -101,12 +107,11 @@ if dados:
     chuva = atual.get('precipitation')
     pressao = atual.get('surface_pressure')
     
-    # Tratamento seguro caso o UV venha como None
     uv_index = atual.get('uv_index')
     if uv_index is None:
         uv_index = 0.0
     
-    # 4. Avaliação das Condições para Dicas Úteis ao Cidadão
+    # Avaliação das Condições para Dicas Úteis
     if uv_index >= 8:
         uv_status = "Muito Alto 🟣"
         uv_dica = "Evite exposição direta ao sol. Use protetor solar, óculos e chapéu."
@@ -120,7 +125,6 @@ if dados:
         uv_status = "Baixo 🟢"
         uv_dica = "Nível de radiação seguro para atividades ao ar livre."
 
-    # Classificação de Hidratação/Mormaço
     if temp_atual is not None and (temp_atual > 31 or (sensacao and sensacao > 34)):
         hidrata_dica = "Sensação de mormaço elevada. Beba bastante água ao longo do dia."
     elif umidade is not None and umidade < 50:
@@ -128,7 +132,7 @@ if dados:
     else:
         hidrata_dica = "Níveis de umidade e temperatura dentro da faixa normal."
 
-    # Resumo Inteligente do Dia
+    # Resumo Inteligente
     resumo_texto = f"""
     <div class="resumo-card">
         <b>💡 Resumo para o morador:</b> Agora faz <b>{temp_atual}°C</b> em {cidade_selecionada} (sensação de <b>{sensacao}°C</b>). 
@@ -137,7 +141,7 @@ if dados:
     """
     st.markdown(resumo_texto, unsafe_allow_html=True)
 
-    # 5. Cartões de Saúde & Recomendações Úteis
+    # Cartões de Saúde
     c_dica1, c_dica2 = st.columns(2)
     with c_dica1:
         st.markdown(f"""
@@ -156,9 +160,8 @@ if dados:
 
     st.markdown("---")
 
-    # 6. Métricas em Grade Limpa (Acessibilidade)
+    # Métricas Detalhadas
     st.subheader("Condições Meteorológicas Detalhadas")
-    
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Temperatura", f"{temp_atual} °C")
@@ -181,57 +184,89 @@ if dados:
         
     st.divider()
 
-    # 7. Gráficos Leves e Otimizados
-    g1, g2 = st.columns(2)
+    # Gráfico 1: Evolução das Próximas 24h
+    st.markdown("### Evolução da Temperatura (Próximas 24h)")
+    horas_dt = pd.to_datetime(dados["hourly"]["time"][:24])
+    df_hourly = pd.DataFrame({
+        "Horário": horas_dt.strftime('%H:%M'),
+        "Temperatura (°C)": dados["hourly"]["temperature_2m"][:24]
+    })
+    
+    fig_hora = px.line(
+        df_hourly, x="Horário", y="Temperatura (°C)",
+        markers=True, template="plotly_dark"
+    )
+    fig_hora.update_traces(line_color="#38bdf8", marker_size=6, line_width=2)
+    fig_hora.update_layout(
+        dragmode='zoom',
+        xaxis=dict(title="Horário", fixedrange=False),
+        yaxis=dict(title="°C", fixedrange=False),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=10, r=10, t=10, b=10),
+        height=350
+    )
+    st.plotly_chart(
+        fig_hora, 
+        use_container_width=True, 
+        config={"scrollZoom": True, "displayModeBar": False, "touchEvents": True}
+    )
 
-    with g1:
-        st.markdown("### Evolução da Temperatura (Próximas 24h)")
-        horas_dt = pd.to_datetime(dados["hourly"]["time"][:24])
-        df_hourly = pd.DataFrame({
-            "Horário": horas_dt.strftime('%H:%M'),
-            "Temperatura (°C)": dados["hourly"]["temperature_2m"][:24]
-        })
-        
-        fig_hora = px.line(
-            df_hourly, x="Horário", y="Temperatura (°C)",
-            markers=True, template="plotly_dark"
-        )
-        fig_hora.update_traces(line_color="#38bdf8", marker_size=6, line_width=2)
-        fig_hora.update_layout(
-            xaxis_title="Horário", 
-            yaxis_title="°C",
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=10, r=10, t=10, b=10)
-        )
-        st.plotly_chart(fig_hora, use_container_width=True, config={"editable": False, "displayModeBar": False})
+    st.markdown("---")
 
-    with g2:
-        st.markdown("### Previsão para os Próximos Dias")
-        dias_dt = pd.to_datetime(dados["daily"]["time"])
-        df_daily = pd.DataFrame({
-            "Data": dias_dt.strftime('%d/%m'),
-            "Mínima": dados["daily"]["temperature_2m_min"],
-            "Máxima": dados["daily"]["temperature_2m_max"]
-        })
-        
-        df_daily_melted = df_daily.melt(id_vars="Data", value_vars=["Mínima", "Máxima"],
-                                        var_name="Tipo", value_name="°C")
-        
-        fig_dias = px.bar(
-            df_daily_melted, x="Data", y="°C", color="Tipo",
-            barmode="group", template="plotly_dark",
-            color_discrete_map={"Mínima": "#60a5fa", "Máxima": "#fb923c"}
-        )
-        fig_dias.update_layout(
-            xaxis_title="Data", 
-            yaxis_title="°C", 
-            legend_title="",
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=10, r=10, t=10, b=10)
-        )
-        st.plotly_chart(fig_dias, use_container_width=True, config={"editable": False, "displayModeBar": False})
+    # Gráfico 2: Linha do Tempo Comparativa (Até 30 dias atrás e 30 dias à frente)
+    st.markdown("### 📊 Linha do Tempo Comparativa (Passado e Previsão)")
+    st.caption("Arraste o controle abaixo para escolher o número de dias para trás (comparação histórica) e para a frente (previsão).")
+
+    # Slider agora estendido até 30 dias
+    dias_janela = st.slider(
+        "Selecionar amplitude de dias (Passado ↔ Futuro)", 
+        min_value=3, 
+        max_value=30, 
+        value=7, 
+        step=1
+    )
+
+    # Processamento do DataFrame diário
+    dias_dt = pd.to_datetime(dados["daily"]["time"])
+    df_daily_full = pd.DataFrame({
+        "Data": dias_dt,
+        "Data_Str": dias_dt.strftime('%d/%m'),
+        "Mínima": dados["daily"]["temperature_2m_min"],
+        "Máxima": dados["daily"]["temperature_2m_max"]
+    })
+
+    # Localização do dia de hoje para fatiar o intervalo correto
+    hoje_date = pd.to_datetime(datetime.now().date())
+    idx_hoje = (df_daily_full["Data"] - hoje_date).abs().idxmin()
+
+    # Recorte dinâmico da fatia de acordo com a escolha do slider
+    inicio_fatia = max(0, idx_hoje - dias_janela)
+    fim_fatia = min(len(df_daily_full), idx_hoje + dias_janela + 1)
+    df_filtrado = df_daily_full.iloc[inicio_fatia:fim_fatia]
+
+    df_daily_melted = df_filtrado.melt(
+        id_vars="Data_Str", 
+        value_vars=["Mínima", "Máxima"],
+        var_name="Tipo", 
+        value_name="°C"
+    )
+
+    fig_dias = px.bar(
+        df_daily_melted, x="Data_Str", y="°C", color="Tipo",
+        barmode="group", template="plotly_dark",
+        color_discrete_map={"Mínima": "#60a5fa", "Máxima": "#fb923c"}
+    )
+    fig_dias.update_layout(
+        xaxis_title="Data", 
+        yaxis_title="°C", 
+        legend_title="",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=10, r=10, t=10, b=10),
+        height=380
+    )
+    st.plotly_chart(fig_dias, use_container_width=True, config={"editable": False, "displayModeBar": False})
 
 else:
     st.error("Erro ao carregar dados da API para esta localidade.")
