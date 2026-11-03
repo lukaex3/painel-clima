@@ -214,11 +214,10 @@ if dados:
 
     st.markdown("---")
 
-    # Gráfico 2: Linha do Tempo Comparativa (Passado e Previsão Limpa)
+    # Gráfico 2: Histórico e Previsão com Eixo X Otimizado e Espaçamento Inteligente
     st.markdown("### 📊 Histórico e Previsão de Temperaturas")
     st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para os próximos dias.")
 
-    # Slider com linguagem mais natural e profissional
     dias_janela = st.slider(
         "📅 Selecione a quantidade de dias exibidos (Passado e Futuro)", 
         min_value=3, 
@@ -228,11 +227,8 @@ if dados:
     )
 
     dias_dt = pd.to_datetime(dados["daily"]["time"])
-    
-    # Identificar o dia de hoje de forma exata para marcar no gráfico
     hoje_date = pd.to_datetime(datetime.now().date())
     
-    # Criamos uma coluna de data amigável e uma flag para destacar o HOJE
     datas_formatadas = []
     status_dia = []
     
@@ -268,7 +264,6 @@ if dados:
         value_name="°C"
     )
 
-    # Gráfico com cores customizadas e tooltip limpo usando 'Data Amigável'
     fig_dias = px.bar(
         df_daily_melted, 
         x="Data Amigável", 
@@ -280,10 +275,13 @@ if dados:
         custom_data=["Tipo_Dia"]
     )
     
-    # Personalizando o texto que aparece ao passar o mouse/dedo para ficar limpo e sem códigos feios
     fig_dias.update_traces(
         hovertemplate="<b>Data:</b> %{x}<br><b>%{data.name}:</b> %{y:.1f} °C<extra></extra>"
     )
+
+    # Lógica inteligente para espaçar os rótulos do eixo X se houver muitos dias selecionados
+    total_barras = len(df_filtrado)
+    dtick_valor = 2 if total_barras > 14 else 1  # Se passar de 14 dias, exibe o rótulo de 2 em 2 dias para não embolar
 
     fig_dias.update_layout(
         xaxis_title="Data", 
@@ -291,8 +289,13 @@ if dados:
         legend_title="",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=10, r=10, t=10, b=10),
-        height=390
+        margin=dict(l=10, r=10, t=10, b=40),
+        height=410,
+        xaxis=dict(
+            tickangle=0,                 # Mantém os textos totalmente retos e profissionais
+            dtick=dtick_valor,           # Espaçamento dinâmico automático
+            tickfont=dict(size=11)
+        )
     )
     
     st.plotly_chart(fig_dias, use_container_width=True, config={"editable": False, "displayModeBar": False})
