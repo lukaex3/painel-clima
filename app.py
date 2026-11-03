@@ -4,14 +4,14 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
 
-# 1. Configuração da página - Leve e Otimizada
+# 1. Configuração da página - leve e otimizada
 st.set_page_config(
     page_title="Painel Climático Metropolitano",
     page_icon="⛅",
     layout="wide"
 )
 
-# CSS Customizado com foco em Alto Contraste, Leveza e Acessibilidade em telas móveis
+# CSS Customizado focado em alto contraste, leveza e acessibilidade pro mobile
 st.markdown("""
     <style>
     .main {
@@ -43,7 +43,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. Barra Lateral (Sidebar) Minimalista
+# 2. Barra lateral (Sidebar)
 with st.sidebar:
     st.title("⛅ Clima Metropolitano")
     st.caption("Painel Comunitário de Alta Velocidade")
@@ -65,9 +65,9 @@ with st.sidebar:
         st.rerun()
         
     st.markdown("---")
-    st.caption("Projeto Extensionista • Focado em Acessibilidade e Utilidade Pública para a Região Metropolitana do Ceará.")
+    st.caption("Projeto Extensionista • Focado em acessibilidade e utilidade pública para a regiões metropolitanas do Ceará.")
 
-# 3. Busca de Dados Otimizada (14 Dias de Histórico + 14 Dias de Previsão + Timeout)
+# 3. Busca de dados otimizada (14 Dias de Histórico + 14 Dias de Previsão + Timeout)
 @st.cache_data(ttl=600)
 def carregar_dados_climaticos(lat, lon):
     hoje = datetime.now()
@@ -94,7 +94,7 @@ def carregar_dados_climaticos(lat, lon):
 
 dados = carregar_dados_climaticos(coords["lat"], coords["lon"])
 
-# Cabeçalho da Área Principal
+# Cabeçalho da area principal
 st.title(f"⛅ {cidade_selecionada}")
 st.caption("Dados meteorológicos em tempo real • Otimizado para consumo em redes móveis")
 
@@ -111,7 +111,7 @@ if dados:
     if uv_index is None:
         uv_index = 0.0
     
-    # Avaliação das Condições para Dicas Úteis
+    # Avaliação das condições para dicas úteis
     if uv_index >= 8:
         uv_status = "Muito Alto 🟣"
         uv_dica = "Evite exposição direta ao sol. Use protetor solar, óculos e chapéu."
@@ -132,7 +132,7 @@ if dados:
     else:
         hidrata_dica = "Níveis de umidade e temperatura dentro da faixa normal."
 
-    # Resumo Inteligente
+    # Resumo inteligente
     resumo_texto = f"""
     <div class="resumo-card">
         <b>💡 Resumo para o morador:</b> Agora faz <b>{temp_atual}°C</b> em {cidade_selecionada} (sensação de <b>{sensacao}°C</b>). 
@@ -141,7 +141,7 @@ if dados:
     """
     st.markdown(resumo_texto, unsafe_allow_html=True)
 
-    # Cartões de Saúde
+    # Cartões de saúde
     c_dica1, c_dica2 = st.columns(2)
     with c_dica1:
         st.markdown(f"""
@@ -160,7 +160,7 @@ if dados:
 
     st.markdown("---")
 
-    # Métricas Detalhadas
+    # Métricas detalhadas
     st.subheader("Condições Meteorológicas Detalhadas")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -216,7 +216,7 @@ if dados:
 
     # Gráfico 2: Histórico e Previsão Otimizado para Mobile (Slider limitado a 7 dias)
     st.markdown("### 📊 Histórico e Previsão de Temperaturas")
-    st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para los próximos dias.")
+    st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para os próximos dias.")
 
     dias_janela = st.slider(
         "📅 Selecione a quantidade de dias exibidos (Passado e Futuro)", 
