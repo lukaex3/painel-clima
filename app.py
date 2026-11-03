@@ -214,15 +214,15 @@ if dados:
 
     st.markdown("---")
 
-    # Gráfico 2: Histórico e Previsão
+    # Gráfico 2: Histórico e Previsão Otimizado para Mobile (Slider limitado a 7 dias)
     st.markdown("### 📊 Histórico e Previsão de Temperaturas")
-    st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para os próximos dias.")
+    st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para los próximos dias.")
 
     dias_janela = st.slider(
         "📅 Selecione a quantidade de dias exibidos (Passado e Futuro)", 
         min_value=3, 
-        max_value=10, 
-        value=5, 
+        max_value=7,  # Limitado a 7 dias para garantir que as barras fiquem grossas e legíveis no celular
+        value=3,      # Padrão inicial em 3 dias (visual super limpo e espaçado)
         step=1
     )
 
@@ -273,7 +273,6 @@ if dados:
         hovertemplate="<b>Data:</b> %{x}<br><b>%{data.name}:</b> %{y:.1f} °C<extra></extra>"
     )
 
-    # Eixo X otimizado com espaçamento de 3 em 3 dias (dtick=3) e ordem cronológica rigorosa
     fig_dias.update_layout(
         dragmode=False,
         xaxis_title="Data", 
@@ -285,7 +284,7 @@ if dados:
         height=400,
         xaxis=dict(
             tickangle=0,
-            dtick=3,                      # Pula de 3 em 3 dias automaticamente no eixo X
+            dtick=2,                      # Pula de 2 em 2 dias para manter os rótulos limpos no mobile
             tickfont=dict(size=11),
             fixedrange=False,
             categoryorder="array",
