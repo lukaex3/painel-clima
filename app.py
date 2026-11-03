@@ -67,12 +67,12 @@ with st.sidebar:
     st.markdown("---")
     st.caption("Projeto Extensionista • Focado em Acessibilidade e Utilidade Pública para a Região Metropolitana do Ceará.")
 
-# 3. Busca de Dados Abrangente (30 Dias de Histórico + 30 Dias de Previsão)
+# 3. Busca de Dados Otimizada (14 Dias de Histórico + 14 Dias de Previsão + Timeout)
 @st.cache_data(ttl=600)
 def carregar_dados_climaticos(lat, lon):
     hoje = datetime.now()
-    data_inicio = (hoje - timedelta(days=30)).strftime('%Y-%m-%d')
-    data_fim = (hoje + timedelta(days=30)).strftime('%Y-%m-%d')
+    data_inicio = (hoje - timedelta(days=14)).strftime('%Y-%m-%d')
+    data_fim = (hoje + timedelta(days=14)).strftime('%Y-%m-%d')
     
     url = (
         f"https://api.open-meteo.com/v1/forecast?"
@@ -85,7 +85,7 @@ def carregar_dados_climaticos(lat, lon):
         f"&timezone=America%2FFortaleza"
     )
     try:
-        res = requests.get(url, timeout=5)
+        res = requests.get(url, timeout=10)
         if res.status_code == 200:
             return res.json()
     except Exception:
@@ -214,20 +214,18 @@ if dados:
 
     st.markdown("---")
 
-    # Gráfico 2: Linha do Tempo Comparativa (Até 30 dias atrás e 30 dias à frente)
+    # Gráfico 2: Linha do Tempo Comparativa (Até 14 dias atrás e 14 dias à frente com Slider)
     st.markdown("### 📊 Linha do Tempo Comparativa (Passado e Previsão)")
     st.caption("Arraste o controle abaixo para escolher o número de dias para trás (comparação histórica) e para a frente (previsão).")
 
-    # Slider agora estendido até 30 dias
     dias_janela = st.slider(
         "Selecionar amplitude de dias (Passado ↔ Futuro)", 
         min_value=3, 
-        max_value=30, 
+        max_value=14, 
         value=7, 
         step=1
     )
 
-    # Processamento do DataFrame diário
     dias_dt = pd.to_datetime(dados["daily"]["time"])
     df_daily_full = pd.DataFrame({
         "Data": dias_dt,
@@ -236,11 +234,9 @@ if dados:
         "Máxima": dados["daily"]["temperature_2m_max"]
     })
 
-    # Localização do dia de hoje para fatiar o intervalo correto
     hoje_date = pd.to_datetime(datetime.now().date())
     idx_hoje = (df_daily_full["Data"] - hoje_date).abs().idxmin()
 
-    # Recorte dinâmico da fatia de acordo com a escolha do slider
     inicio_fatia = max(0, idx_hoje - dias_janela)
     fim_fatia = min(len(df_daily_full), idx_hoje + dias_janela + 1)
     df_filtrado = df_daily_full.iloc[inicio_fatia:fim_fatia]
