@@ -214,7 +214,7 @@ if dados:
 
     st.markdown("---")
 
-    # Gráfico 2: Histórico e Previsão com Ordem Cronológica Perfeita
+    # Gráfico 2: Histórico e Previsão
     st.markdown("### 📊 Histórico e Previsão de Temperaturas")
     st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para os próximos dias.")
 
@@ -230,25 +230,20 @@ if dados:
     hoje_date = pd.to_datetime(datetime.now().date())
     
     datas_formatadas = []
-    indicador_hoje = []
     
     for d in dias_dt:
-        # Mantemos o formato padrão DD/MM para o eixo X ficar perfeitamente ordenado
-        datas_formatadas.append(d.strftime('%d/%m'))
         if d.normalize() == hoje_date.normalize():
-            indicador_hoje.append("⭐ (Hoje)")
+            datas_formatadas.append(f"⭐ {d.strftime('%d/%m')}")  # Estrelinha direto na data mantendo a ordem correta
         else:
-            indicador_hoje.append("")
+            datas_formatadas.append(d.strftime('%d/%m'))
 
     df_daily_full = pd.DataFrame({
         "Data": dias_dt,
         "Data Amigável": datas_formatadas,
-        "Indicador": indicador_hoje,
         "Mínima": dados["daily"]["temperature_2m_min"],
         "Máxima": dados["daily"]["temperature_2m_max"]
     })
 
-    # Ordenação cronológica rigorosa garantida pelo campo Data real
     df_daily_full = df_daily_full.sort_values("Data").reset_index(drop=True)
 
     idx_hoje = (df_daily_full["Data"] - hoje_date).abs().idxmin()
@@ -258,7 +253,7 @@ if dados:
     df_filtrado = df_daily_full.iloc[inicio_fatia:fim_fatia]
 
     df_daily_melted = df_filtrado.melt(
-        id_vars=["Data Amigável", "Indicador"], 
+        id_vars=["Data Amigável"], 
         value_vars=["Mínima", "Máxima"],
         var_name="Métrica", 
         value_name="°C"
@@ -274,10 +269,8 @@ if dados:
         color_discrete_map={"Mínima": "#60a5fa", "Máxima": "#fb923c"}
     )
     
-    # Tooltip limpo que identifica o dia de hoje de forma elegante ao passar o mouse/dedo
     fig_dias.update_traces(
-        hovertemplate="<b>Data:</b> %{x} %{customdata[0]}<br><b>%{data.name}:</b> %{y:.1f} °C<extra></extra>",
-        custom_data=df_daily_melted[["Indicador"]]
+        hovertemplate="<b>Data:</b> %{x}<br><b>%{data.name}:</b> %{y:.1f} °C<extra></extra>"
     )
 
     fig_dias.update_layout(
@@ -294,7 +287,7 @@ if dados:
             tickfont=dict(size=11),
             fixedrange=False,
             categoryorder="array",
-            categoryarray=df_filtrado["Data Amigável"].tolist() # Força a ordem cronológica correta no eixo X
+            categoryarray=df_filtrado["Data Amigável"].tolist()
         ),
         yaxis=dict(fixedrange=False)
     )
