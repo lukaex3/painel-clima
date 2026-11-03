@@ -214,7 +214,7 @@ if dados:
 
     st.markdown("---")
 
-    # Gráfico 2: Histórico e Previsão com Estrelinha e Cores Diferenciadas para o Hoje
+    # Gráfico 2: Histórico e Previsão com Ordem Cronológica Perfeita
     st.markdown("### 📊 Histórico e Previsão de Temperaturas")
     st.markdown("Visualize o comportamento térmico dos dias anteriores e a tendência para os próximos dias.")
 
@@ -222,7 +222,7 @@ if dados:
         "📅 Selecione a quantidade de dias exibidos (Passado e Futuro)", 
         min_value=3, 
         max_value=10, 
-        value=5, 
+        value=6, 
         step=1
     )
 
@@ -230,23 +230,26 @@ if dados:
     hoje_date = pd.to_datetime(datetime.now().date())
     
     datas_formatadas = []
-    tipo_coluna = []
+    indicador_hoje = []
     
     for d in dias_dt:
+        # Mantemos o formato padrão DD/MM para o eixo X ficar perfeitamente ordenado
+        datas_formatadas.append(d.strftime('%d/%m'))
         if d.normalize() == hoje_date.normalize():
-            datas_formatadas.append(f"⭐ {d.strftime('%d/%m')}")  # Apenas a data com estrelinha, sem a palavra "hoje"
-            tipo_coluna.append("⭐ Hoje")
+            indicador_hoje.append("⭐ (Hoje)")
         else:
-            datas_formatadas.append(d.strftime('%d/%m'))
-            tipo_coluna.append("Histórico / Previsão")
+            indicador_hoje.append("")
 
     df_daily_full = pd.DataFrame({
         "Data": dias_dt,
         "Data Amigável": datas_formatadas,
-        "Categoria": tipo_coluna,
+        "Indicador": indicador_hoje,
         "Mínima": dados["daily"]["temperature_2m_min"],
         "Máxima": dados["daily"]["temperature_2m_max"]
     })
+
+    # Ordenação cronológica rigorosa garantida pelo campo Data real
+    df_daily_full = df_daily_full.sort_values("Data").reset_index(drop=True)
 
     idx_hoje = (df_daily_full["Data"] - hoje_date).abs().idxmin()
 
@@ -255,26 +258,26 @@ if dados:
     df_filtrado = df_daily_full.iloc[inicio_fatia:fim_fatia]
 
     df_daily_melted = df_filtrado.melt(
-        id_vars=["Data Amigável", "Categoria"], 
+        id_vars=["Data Amigável", "Indicador"], 
         value_vars=["Mínima", "Máxima"],
         var_name="Métrica", 
         value_name="°C"
     )
 
-    # Usamos cores distintas para separar o dia de hoje (destacado em amarelo/dourado) dos demais dias
     fig_dias = px.bar(
         df_daily_melted, 
         x="Data Amigável", 
         y="°C", 
         color="Métrica",
-        pattern_shape="Categoria", # Cria um padrão visual único para a barra de hoje
         barmode="group", 
         template="plotly_dark",
         color_discrete_map={"Mínima": "#60a5fa", "Máxima": "#fb923c"}
     )
     
+    # Tooltip limpo que identifica o dia de hoje de forma elegante ao passar o mouse/dedo
     fig_dias.update_traces(
-        hovertemplate="<b>Data:</b> %{x}<br><b>%{data.name}:</b> %{y:.1f} °C<extra></extra>"
+        hovertemplate="<b>Data:</b> %{x} %{customdata[0]}<br><b>%{data.name}:</b> %{y:.1f} °C<extra></extra>",
+        custom_data=df_daily_melted[["Indicador"]]
     )
 
     fig_dias.update_layout(
@@ -284,12 +287,14 @@ if dados:
         legend_title="",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=10, r=10, t=10, b=60),
-        height=420,
+        margin=dict(l=10, r=10, t=10, b=50),
+        height=400,
         xaxis=dict(
             tickangle=-45,
-            tickfont=dict(size=10),
-            fixedrange=False
+            tickfont=dict(size=11),
+            fixedrange=False,
+            categoryorder="array",
+            categoryarray=df_filtrado["Data Amigável"].tolist() # Força a ordem cronológica correta no eixo X
         ),
         yaxis=dict(fixedrange=False)
     )
