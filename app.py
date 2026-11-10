@@ -121,8 +121,8 @@ with st.sidebar:
   st.markdown("---")
   st.subheader("📱 Compartilhe o Painel")
 
-  # Substitua pela URL exata do seu app no Streamlit Cloud quando publicar
-  URL_DO_SITE = "https://clima-regional.streamlit.app"
+  # URL do site no Streamlit Cloud
+  URL_DO_SITE = "https://painel-clima-regional.streamlit.app/"
 
   qr_img_bytes = gerar_qr_code(URL_DO_SITE)
 
